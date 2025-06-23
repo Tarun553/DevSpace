@@ -6,6 +6,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { FileText, MessageSquare, ThumbsUp, ArrowUp } from 'lucide-react'
+import RecentArticle from './recent-article'
 
 const BlogDashboard = () => {
     return (
@@ -61,8 +62,8 @@ const BlogDashboard = () => {
                     </CardContent>
                 </Card>
             </div>
-            <div>
-             
+            <div className="mt-8">
+             <RecentArticle />
             </div>
         </div>
     )

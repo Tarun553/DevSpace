@@ -1,16 +1,34 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Search, MoreHorizontal } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const contributors = [
+interface Contributor {
+  id: string;
+  name: string;
+  email: string;
+  location: string;
+  status: "Active" | "Pending" | "Inactive";
+  balance: string;
+}
+
+const contributors: Contributor[] = [
   {
     id: "1",
     name: "Aarav Mehta",
@@ -53,55 +71,119 @@ const contributors = [
   },
 ];
 
-function ContributorsOverviewTable() {
+function formatDate(dateString: string) {
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+function getStatusVariant(status: Contributor["status"]) {
+  switch (status) {
+    case 'Active':
+      return 'default';
+    case 'Pending':
+      return 'secondary';
+    case 'Inactive':
+      return 'outline';
+    default:
+      return 'default';
+  }
+}
+
+export function ContributorsTable() {
   return (
-    <div className="max-w-3xl mx-auto rounded-xl border border-border bg-background p-6 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold text-foreground">Team Contributors</h2>
-      <Table className="table-fixed">
+    <div className="rounded-md border">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h2 className="text-lg font-semibold"> Recent Articles</h2>
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search articles..."
+              className="pl-8 w-[200px] lg:w-[300px]"
+            />
+          </div>
+          <Button variant="outline" size="sm" className="h-9">
+            Filter
+          </Button>
+        </div>
+      </div>
+      
+      <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[180px]">Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Location</TableHead>
+            <TableHead className="w-[180px]">Title</TableHead>
+            <TableHead>Content</TableHead>
+            <TableHead>Date</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Payout</TableHead>
+            <TableHead className="text-right">Comments</TableHead>
+            <TableHead className="w-[50px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {contributors.map((person) => (
-            <TableRow key={person.id} className="hover:bg-muted/40 transition-colors">
-              <TableCell className="font-medium">{person.name}</TableCell>
-              <TableCell>{person.email}</TableCell>
-              <TableCell>{person.location}</TableCell>
-              <TableCell>
-                <span
-                  className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
-                    person.status === "Active"
-                      ? "bg-green-100 text-green-700"
-                      : person.status === "Pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  {person.status}
-                </span>
+          {contributors.map((contributor) => (
+            <TableRow key={contributor.id}>
+              <TableCell className="font-medium">
+                <div className="line-clamp-1">{contributor.name}</div>
               </TableCell>
-              <TableCell className="text-right">{person.balance}</TableCell>
+              <TableCell className="text-muted-foreground">
+                <div className="line-clamp-1">{contributor.email}</div>
+              </TableCell>
+              <TableCell>{formatDate(new Date().toISOString())}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(contributor.status)}>
+                  {contributor.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end">
+                  {contributor.status === 'Active' ? '24' : '0'}
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuItem>View details</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive">
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={4} className="text-right font-semibold">
-              Total
-            </TableCell>
-            <TableCell className="text-right font-bold text-foreground">₹1,08,500</TableCell>
-          </TableRow>
-        </TableFooter>
       </Table>
-      <p className="mt-4 text-center text-sm text-muted-foreground">contributors payout summary</p>
+      
+      <div className="flex items-center justify-between p-4 border-t">
+        <p className="text-sm text-muted-foreground">
+          Showing <span className="font-medium">1</span> to{' '}
+          <span className="font-medium">5</span> of <span className="font-medium">5</span> contributors
+        </p>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" disabled>
+            Previous
+          </Button>
+          <Button variant="outline" size="sm" disabled>
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default ContributorsOverviewTable;
+export default function ContributorsOverviewTable() {
+  return (
+    <div className="container mx-auto py-6">
+      <ContributorsTable />
+    </div>
+  );
+}
