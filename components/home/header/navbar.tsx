@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import  ModeToggle  from "@/components/ui/toggle";
-import { UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import SearchInput from "./search-input";
 
 const navLinks = [
@@ -47,9 +47,17 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           <SearchInput />
           <ModeToggle />
+          <SignedIn>
           <UserButton afterSignOutUrl="/" />
-          <Button>login</Button>
-          <Button>signup</Button>
+          </SignedIn>
+          <SignedOut>
+          <SignInButton mode="modal">
+            <Button variant="ghost" size="sm">Sign in</Button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <Button size="sm">Sign up</Button>
+          </SignUpButton>
+          </SignedOut>
           
         </div>
 
@@ -76,7 +84,18 @@ export default function Navbar() {
                 {/* Mobile Only Search + Toggle + User */}
               
                 <ModeToggle />
-                <UserButton afterSignOutUrl="/" />
+                <SignedIn>
+                  <SearchInput />
+                  <UserButton afterSignOutUrl="/" />
+                </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <Button variant="ghost" className="w-full justify-start">Sign in</Button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <Button className="w-full justify-start">Sign up</Button>
+                  </SignUpButton>
+                </SignedOut>
               </div>
             </SheetContent>
           </Sheet>
