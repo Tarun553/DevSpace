@@ -37,7 +37,7 @@ const items = [
     },
     {
         title: "Article",
-        url: "/article",
+        url: "/articles/create",
         icon: Newspaper,
     },
     {
@@ -92,7 +92,7 @@ const LeftSidebar = () => {
             <main className="flex-1 min-w-100vh">
                 <div className="flex justify-between items-center px-4 py-2 mt-8">
                     <SidebarTrigger className="h-4 w-4 mt-2" />
-                    <Link href="/dashboard/article/create">
+                    <Link href="/articles/create">
                         <Button className="flex items-center gap-2">
                             <PlusCircle className="h-4 w-4" />
                             New Article
