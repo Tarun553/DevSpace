@@ -24,14 +24,14 @@ function HeroSection() {
         },
         {
           text: " Explore Blogs",
-          href: "/articles",
+          href: "/articles/create",
           variant: "default",
           icon: <BookOpen className="h-5 w-5" />,
         },
       ]}
       image={{
-        light: "/images/devspace-light.png", // Place inside /public/images/
-        dark: "/images/devspace-dark.png",   // Place inside /public/images/
+        light: "/logi.png", // Place inside /public/images/
+        dark: "/logi.png",   // Place inside /public/images/
         alt: "DevSpace blog dashboard preview",
       }}
     />

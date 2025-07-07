@@ -15,7 +15,7 @@ import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@cl
 import SearchInput from "./search-input";
 
 const navLinks = [
-  { name: "Articles", href: "/articles" },
+  { name: "Articles", href: "/articles/create" },
   { name: "Tutorial", href: "/tutorial" },
   { name: "About", href: "/about" },
   { name: "Dashboard", href: "/dashboard" },

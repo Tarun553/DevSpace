@@ -14,7 +14,7 @@ const BlogDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <Card className="hover:shadow-lg transition-shadow w-full">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Articles</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Articles</CardTitle>
                         <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                             <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                         </div>

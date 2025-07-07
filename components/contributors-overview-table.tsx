@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreHorizontal } from "lucide-react";
+import { Search, MoreHorizontal, Eye, Edit, Trash2, MessageCircle, Heart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -18,172 +18,291 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import { getArticles, deleteArticleById } from "@/actions/article";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
-interface Contributor {
+interface Article {
   id: string;
-  name: string;
-  email: string;
-  location: string;
-  status: "Active" | "Pending" | "Inactive";
-  balance: string;
+  title: string;
+  content: string;
+  category: string;
+  featuredImage: string | null;
+  author: {
+    name: string | null;
+    email: string;
+    imageUrl: string | null;
+  };
+  _count: {
+    comments: number;
+    likes: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+  status: string;
 }
 
-const contributors: Contributor[] = [
-  {
-    id: "1",
-    name: "Aarav Mehta",
-    email: "aarav@ruixen.dev",
-    location: "Bangalore, India",
-    status: "Active",
-    balance: "₹45,000",
-  },
-  {
-    id: "2",
-    name: "Elena Torres",
-    email: "elena.t@ruixen.dev",
-    location: "Barcelona, Spain",
-    status: "Active",
-    balance: "₹22,000",
-  },
-  {
-    id: "3",
-    name: "Kenji Nakamura",
-    email: "kenji.n@ruixen.dev",
-    location: "Tokyo, Japan",
-    status: "Inactive",
-    balance: "₹0",
-  },
-  {
-    id: "4",
-    name: "Leila Ahmed",
-    email: "leila.a@ruixen.dev",
-    location: "Cairo, Egypt",
-    status: "Pending",
-    balance: "₹10,000",
-  },
-  {
-    id: "5",
-    name: "Ryan Smith",
-    email: "ryan.s@ruixen.dev",
-    location: "Toronto, Canada",
-    status: "Active",
-    balance: "₹31,500",
-  },
-];
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
-function formatDate(dateString: string) {
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('en-US', options);
-}
-
-function getStatusVariant(status: Contributor["status"]) {
+const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'Active':
+    case 'PUBLISHED':
       return 'default';
-    case 'Pending':
+    case 'DRAFT':
       return 'secondary';
-    case 'Inactive':
-      return 'outline';
+    case 'ARCHIVED':
+      return 'destructive';
     default:
-      return 'default';
+      return 'outline';
   }
-}
+};
 
-export function ContributorsTable() {
+export function ArticlesTable() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
+  const router = useRouter();
+
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const result = await getArticles();
+      if (result.data) {
+        setArticles(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+      toast.error("Failed to load articles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const handleDeleteClick = (articleId: string) => {
+    setArticleToDelete(articleId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!articleToDelete) return;
+    
+    try {
+      const result = await deleteArticleById(articleToDelete);
+      if (result.success) {
+        toast.success("Article deleted successfully");
+        // Refresh the articles list
+        await fetchArticles();
+      } else {
+        toast.error(result.error || "Failed to delete article");
+      }
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      toast.error("An error occurred while deleting the article");
+    } finally {
+      setDeleteDialogOpen(false);
+      setArticleToDelete(null);
+    }
+  };
+
+  const filteredArticles = articles.filter(article => 
+    article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    article.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    article.author.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    article.author.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-md border">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold"> Recent Articles</h2>
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search articles..."
-              className="pl-8 w-[200px] lg:w-[300px]"
-            />
-          </div>
-          <Button variant="outline" size="sm" className="h-9">
-            Filter
-          </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search articles..."
+            className="pl-10 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
       
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[180px]">Title</TableHead>
-            <TableHead>Content</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Comments</TableHead>
-            <TableHead className="w-[50px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contributors.map((contributor) => (
-            <TableRow key={contributor.id}>
-              <TableCell className="font-medium">
-                <div className="line-clamp-1">{contributor.name}</div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                <div className="line-clamp-1">{contributor.email}</div>
-              </TableCell>
-              <TableCell>{formatDate(new Date().toISOString())}</TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(contributor.status)}>
-                  {contributor.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end">
-                  {contributor.status === 'Active' ? '24' : '0'}
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>View details</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Author</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Engagement</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      
-      <div className="flex items-center justify-between p-4 border-t">
-        <p className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">1</span> to{' '}
-          <span className="font-medium">5</span> of <span className="font-medium">5</span> contributors
-        </p>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" disabled>
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" disabled>
-            Next
-          </Button>
-        </div>
+          </TableHeader>
+          <TableBody>
+            {filteredArticles.length > 0 ? (
+              filteredArticles.map((article) => (
+                <TableRow key={article.id}>
+                  <TableCell className="font-medium">
+                    <Link href={`/articles/${article.id}`} className="hover:underline">
+                      {article.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {article.author.imageUrl && (
+                        <img 
+                          src={article.author.imageUrl} 
+                          alt={article.author.name || 'Author'} 
+                          className="h-8 w-8 rounded-full"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">{article.author.name || 'Unknown'}</div>
+                        <div className="text-xs text-muted-foreground">{article.author.email}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{article.category}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2 text-sm">
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        {article._count.comments}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-4 w-4" />
+                        {article._count.likes}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatDate(article.createdAt)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(article.status || 'Published')}>
+                      {article.status || 'Published'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/articles/${article.id}`} className="flex items-center">
+                            <Eye className="mr-2 h-4 w-4" />
+                            <span>View</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/articles/${article.id}/edit`} className="flex items-center">
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteClick(article.id);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete article</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  {searchQuery ? 'No articles match your search.' : 'No articles found.'}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the article and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-export default function ContributorsOverviewTable() {
+export function ArticlesOverviewTable() {
   return (
-    <div className="container mx-auto py-6">
-      <ContributorsTable />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Articles</h2>
+          <p className="text-muted-foreground">
+            Manage your articles and track their performance
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/articles/create">
+            Create Article
+          </Link>
+        </Button>
+      </div>
+      <ArticlesTable />
     </div>
   );
 }
