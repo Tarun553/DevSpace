@@ -178,3 +178,34 @@ export const deleteArticleById = async(id: string) => {
     };
   }
 }
+
+// make the server action from edit blog 
+export const editArticleById = async (id: string, data: CreateArticleInput) => {
+  try {
+    // Update the article in the database
+    const updatedArticle = await prisma.articles.update({
+      where: { id },
+      data,
+      include: {
+        author: {
+          select: {
+            name: true,
+            imageUrl: true,
+          },
+        },
+      },
+    });
+
+    // Revalidate the articles page to reflect the changes
+    revalidatePath('/dashboard/articles');
+    
+    return { success: true, data: updatedArticle };
+  } catch (error) {
+    console.error('Error updating article:', error);
+    return { 
+      success: false, 
+      error: 'Failed to update article',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}

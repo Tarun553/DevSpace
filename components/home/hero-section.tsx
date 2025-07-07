@@ -30,7 +30,7 @@ function HeroSection() {
         },
       ]}
       image={{
-        light: "/logi.png", // Place inside /public/images/
+        light: "/logo.png", // Place inside /public/images/
         dark: "/logi.png",   // Place inside /public/images/
         alt: "DevSpace blog dashboard preview",
       }}

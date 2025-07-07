@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
-import { getArticles, deleteArticleById } from "@/actions/article";
+import { getArticles, deleteArticleById, editArticleById } from "@/actions/article";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -33,6 +33,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Article {
   id: string;
@@ -51,7 +61,6 @@ interface Article {
   };
   createdAt: string;
   updatedAt: string;
-  status: string;
 }
 
 const formatDate = (dateString: string) => {
@@ -62,25 +71,19 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const getStatusVariant = (status: string) => {
-  switch (status) {
-    case 'PUBLISHED':
-      return 'default';
-    case 'DRAFT':
-      return 'secondary';
-    case 'ARCHIVED':
-      return 'destructive';
-    default:
-      return 'outline';
-  }
-};
-
 export function ArticlesTable() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
+  const [articleToEdit, setArticleToEdit] = useState<Article | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    content: "",
+    category: "",
+  });
   const router = useRouter();
 
   const fetchArticles = async () => {
@@ -97,10 +100,6 @@ export function ArticlesTable() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchArticles();
-  }, []);
 
   const handleDeleteClick = (articleId: string) => {
     setArticleToDelete(articleId);
@@ -127,6 +126,46 @@ export function ArticlesTable() {
       setArticleToDelete(null);
     }
   };
+
+  const handleEditClick = (article: Article) => {
+    setArticleToEdit(article);
+    setEditFormData({
+      title: article.title,
+      content: article.content,
+      category: article.category,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!articleToEdit) return;
+    
+    try {
+      const result = await editArticleById(articleToEdit.id, editFormData);
+      if (result.success) {
+        toast.success("Article updated successfully");
+        await fetchArticles();
+        setEditDialogOpen(false);
+      } else {
+        toast.error(result.error || "Failed to update article");
+      }
+    } catch (error) {
+      console.error("Error updating article:", error);
+      toast.error("An error occurred while updating the article");
+    }
+  };
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
 
   const filteredArticles = articles.filter(article => 
     article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,7 +206,6 @@ export function ArticlesTable() {
               <TableHead>Category</TableHead>
               <TableHead>Engagement</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="w-[50px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -212,11 +250,6 @@ export function ArticlesTable() {
                   </TableCell>
                   <TableCell>{formatDate(article.createdAt)}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusVariant(article.status || 'Published')}>
-                      {article.status || 'Published'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -247,6 +280,15 @@ export function ArticlesTable() {
                           <Trash2 className="mr-2 h-4 w-4" />
                           <span>Delete article</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleEditClick(article);
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Edit article details</span>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -254,7 +296,7 @@ export function ArticlesTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   {searchQuery ? 'No articles match your search.' : 'No articles found.'}
                 </TableCell>
               </TableRow>
@@ -262,6 +304,55 @@ export function ArticlesTable() {
           </TableBody>
         </Table>
       </div>
+      {/* Edit Article Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Article</DialogTitle>
+            <DialogDescription>
+              Make changes to the article here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                name="title"
+                value={editFormData.title}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">Content</Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={editFormData.content}
+                onChange={handleInputChange}
+                className="min-h-[200px]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                name="category"
+                value={editFormData.category}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" onClick={handleConfirmEdit}>
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
